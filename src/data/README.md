@@ -32,28 +32,31 @@ src/lib/
 ### Adapters
 
 #### LibraryAdapter
+
 - **Interface**: `LibraryAdapter`
 - **Methods**:
   - `getAll()`: Get all books
   - `findById(id)`: Find a book by ID
   - `add(input)`: Add a new book
 - **Current Implementation**: `DatabaseLibraryAdapter` (SQLite)
-- **Available Implementations**: 
+- **Available Implementations**:
   - `InMemoryLibraryAdapter` - For testing/development
   - `DatabaseLibraryAdapter` - For production
 
 #### RolodexAdapter
+
 - **Interface**: `RolodexAdapter`
 - **Methods**:
   - `getAll()`: Get all friends
   - `findById(id)`: Find a friend by ID
   - `add(input)`: Add a new friend
 - **Current Implementation**: `DatabaseRolodexAdapter` (SQLite)
-- **Available Implementations**: 
+- **Available Implementations**:
   - `InMemoryRolodexAdapter` - For testing/development
   - `DatabaseRolodexAdapter` - For production
 
 #### LoanAdapter
+
 - **Interface**: `LoanAdapter`
 - **Methods**:
   - `getAll()`: Get all loans
@@ -64,7 +67,7 @@ src/lib/
   - `create(input)`: Create a new loan
   - `returnLoan(id)`: Mark a loan as returned
 - **Current Implementation**: `DatabaseLoanAdapter` (SQLite)
-- **Available Implementations**: 
+- **Available Implementations**:
   - `InMemoryLoanAdapter` - For testing/development
   - `DatabaseLoanAdapter` - For production
 
@@ -135,16 +138,16 @@ const newBook = addBookToLibrary({
 
 ### Using the Rolodex API
 
-```
+````
 
 ### Using the Loans API
 
 ```typescript
-import { 
-  getAllLoans, 
-  getActiveLoans, 
-  createLoan, 
-  returnLoan 
+import {
+  getAllLoans,
+  getActiveLoans,
+  createLoan,
+  returnLoan
 } from "@/data/loans";
 
 // Get all loans
@@ -161,7 +164,7 @@ const newLoan = createLoan({
 
 // Mark a loan as returned
 const returned = returnLoan(1);
-```
+````
 
 ## Switching Between Adapters
 
