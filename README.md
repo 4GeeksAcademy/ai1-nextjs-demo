@@ -25,6 +25,20 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+### Environment Variables
+
+This project reads the Groq API key from an environment variable:
+
+- `GROQ_API_KEY`
+
+Create a local `.env` file from `.env.example` and set your key:
+
+```bash
+cp .env.example .env
+```
+
+Then update `GROQ_API_KEY` in `.env` with your own value.
+
 ### Database
 
 The application uses SQLite for persistent data storage. On first run, a `library.db` file will be automatically created and seeded with sample data.
