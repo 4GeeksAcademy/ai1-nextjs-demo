@@ -1,5 +1,5 @@
-import BookCatalogHeader from "@/components/book-catalog-header";
-import BookCatalogItem from "@/components/book-catalog-item";
+import BookCatalogHeader from "./book-catalog-header";
+import BookCatalogItem from "./book-catalog-item";
 
 import type { LibraryType } from "@/types";
 

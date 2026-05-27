@@ -1,5 +1,5 @@
-import FriendCatalogHeader from "@/components/friend-catalog-header";
-import FriendCatalogItem from "@/components/friend-catalog-item";
+import FriendCatalogHeader from "./friend-catalog-header";
+import FriendCatalogItem from "./friend-catalog-item";
 
 import type { RolodexType } from "@/types";
 

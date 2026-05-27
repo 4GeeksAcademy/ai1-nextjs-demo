@@ -46,6 +46,7 @@ export class DatabaseLibraryAdapter implements LibraryAdapter {
       title: string;
       isbn: string;
       cover_img: string;
+      open_library_id: string | null;
       summary: string;
       added: string;
     }>;
@@ -55,6 +56,7 @@ export class DatabaseLibraryAdapter implements LibraryAdapter {
       title: row.title,
       isbn: row.isbn,
       cover_img: normalizeCoverImage(row.cover_img),
+      open_library_id: row.open_library_id || undefined,
       summary: row.summary,
       added: new Date(row.added),
     }));
@@ -68,6 +70,7 @@ export class DatabaseLibraryAdapter implements LibraryAdapter {
           title: string;
           isbn: string;
           cover_img: string;
+          open_library_id: string | null;
           summary: string;
           added: string;
         }
@@ -82,6 +85,7 @@ export class DatabaseLibraryAdapter implements LibraryAdapter {
       title: row.title,
       isbn: row.isbn,
       cover_img: normalizeCoverImage(row.cover_img),
+      open_library_id: row.open_library_id || undefined,
       summary: row.summary,
       added: new Date(row.added),
     };
@@ -89,17 +93,19 @@ export class DatabaseLibraryAdapter implements LibraryAdapter {
 
   add(input: NewBookInput): IBook {
     const stmt = db.prepare(`
-      INSERT INTO books (title, isbn, cover_img, summary, added)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO books (title, isbn, cover_img, open_library_id, summary, added)
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
 
     const normalizedCoverImg = normalizeCoverImage(input.cover_img);
+    const normalizedOpenLibraryId = input.open_library_id?.trim() || null;
     const added = new Date().toISOString();
 
     const result = stmt.run(
       input.title.trim(),
       input.isbn.trim(),
       normalizedCoverImg,
+      normalizedOpenLibraryId,
       input.summary.trim(),
       added,
     );
@@ -109,6 +115,7 @@ export class DatabaseLibraryAdapter implements LibraryAdapter {
       title: input.title.trim(),
       isbn: input.isbn.trim(),
       cover_img: normalizedCoverImg,
+      open_library_id: normalizedOpenLibraryId || undefined,
       summary: input.summary.trim(),
       added: new Date(added),
     };

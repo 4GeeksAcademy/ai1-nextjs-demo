@@ -10,6 +10,7 @@ interface IBook {
   title: string;
   isbn: string;
   cover_img: string;
+  open_library_id?: string;
   summary: string;
   added: Date;
 }

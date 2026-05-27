@@ -4,6 +4,10 @@ import path from "path";
 const dbPath = path.join(process.cwd(), "library.db");
 const db = new Database(dbPath);
 
+type SeedBookRow = [number, string, string, string, string, string];
+type SeedFriendRow = [string, string, string];
+type SeedLoanRow = [number, number, string, string | null];
+
 // Enable foreign keys
 db.pragma("foreign_keys = ON");
 
@@ -18,10 +22,23 @@ export function initializeDatabase() {
       title TEXT NOT NULL,
       isbn TEXT NOT NULL,
       cover_img TEXT NOT NULL,
+      open_library_id TEXT,
       summary TEXT NOT NULL,
       added TEXT NOT NULL
     )
   `);
+
+  // Migrate existing databases that predate open_library_id.
+  const bookColumns = db
+    .prepare("PRAGMA table_info(books)")
+    .all() as Array<{ name: string }>;
+  const hasOpenLibraryId = bookColumns.some(
+    (column) => column.name === "open_library_id",
+  );
+
+  if (!hasOpenLibraryId) {
+    db.exec("ALTER TABLE books ADD COLUMN open_library_id TEXT");
+  }
 
   // Create friends table
   db.exec(`
@@ -62,7 +79,7 @@ export function seedDatabase() {
       VALUES (?, ?, ?, ?, ?, ?)
     `);
 
-    const books = [
+    const books: SeedBookRow[] = [
       [
         2,
         "Something Wicked This Way Comes",
@@ -185,7 +202,7 @@ export function seedDatabase() {
       ],
     ];
 
-    const insertMany = db.transaction((books: any[]) => {
+    const insertMany = db.transaction((books: SeedBookRow[]) => {
       for (const book of books) {
         insertBook.run(...book);
       }
@@ -199,7 +216,7 @@ export function seedDatabase() {
       VALUES (?, ?, ?)
     `);
 
-    const friends = [
+    const friends: SeedFriendRow[] = [
       ["Alice Johnson", "(555) 123-4567", "alice.johnson@email.com"],
       ["Bob Smith", "(555) 234-5678", "bob.smith@email.com"],
       ["Carol Martinez", "(555) 345-6789", "carol.martinez@email.com"],
@@ -210,7 +227,7 @@ export function seedDatabase() {
       ["Henry Davis", "(555) 890-1234", "henry.davis@email.com"],
     ];
 
-    const insertManyFriends = db.transaction((friends: any[]) => {
+    const insertManyFriends = db.transaction((friends: SeedFriendRow[]) => {
       for (const friend of friends) {
         insertFriend.run(...friend);
       }
@@ -224,7 +241,7 @@ export function seedDatabase() {
       VALUES (?, ?, ?, ?)
     `);
 
-    const loans = [
+    const loans: SeedLoanRow[] = [
       [1, 5, new Date("2026-05-10").toISOString(), null],
       [3, 17, new Date("2026-05-12").toISOString(), null],
       [
@@ -235,7 +252,7 @@ export function seedDatabase() {
       ],
     ];
 
-    const insertManyLoans = db.transaction((loans: any[]) => {
+    const insertManyLoans = db.transaction((loans: SeedLoanRow[]) => {
       for (const loan of loans) {
         insertLoan.run(...loan);
       }

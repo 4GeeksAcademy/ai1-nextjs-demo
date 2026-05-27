@@ -213,6 +213,7 @@ export class InMemoryLibraryAdapter implements LibraryAdapter {
       title: input.title.trim(),
       isbn: input.isbn.trim(),
       cover_img: normalizeCoverImage(input.cover_img),
+      open_library_id: input.open_library_id?.trim() || undefined,
       summary: input.summary.trim(),
       added: new Date(),
     };

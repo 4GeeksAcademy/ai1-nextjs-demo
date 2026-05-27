@@ -1,4 +1,4 @@
-import FriendCatalog from "@/components/friend-catalog";
+import { FriendCatalog } from "@/components";
 import { getRolodex } from "@/data/rolodex";
 
 export const dynamic = "force-dynamic";

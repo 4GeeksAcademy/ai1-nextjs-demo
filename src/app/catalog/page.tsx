@@ -1,4 +1,4 @@
-import BookCatalog from "@/components/book-catalog";
+import { BookCatalog } from "@/components";
 import { getLibrary } from "@/data/library";
 
 export const dynamic = "force-dynamic";

@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { getActiveLoans } from "@/data/loans";
-import LoanListItem from "@/components/loan-list-item";
+import { LoanListItem } from "@/components";
 
 export default function LoansPage() {
   const loans = getActiveLoans();
