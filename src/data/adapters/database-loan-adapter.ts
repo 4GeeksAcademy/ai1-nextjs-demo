@@ -7,7 +7,7 @@ import { db } from "@/lib/database";
  * This adapter provides persistent storage for loans.
  */
 export class DatabaseLoanAdapter implements LoanAdapter {
-  getAll(): ILoan[] {
+  async getAll(): Promise<ILoan[]> {
     const stmt = db.prepare("SELECT * FROM loans ORDER BY id DESC");
     const rows = stmt.all() as Array<{
       id: number;
@@ -26,7 +26,7 @@ export class DatabaseLoanAdapter implements LoanAdapter {
     }));
   }
 
-  getActive(): ILoan[] {
+  async getActive(): Promise<ILoan[]> {
     const stmt = db.prepare(
       "SELECT * FROM loans WHERE returned_at IS NULL ORDER BY id DESC",
     );
@@ -47,7 +47,7 @@ export class DatabaseLoanAdapter implements LoanAdapter {
     }));
   }
 
-  findById(id: number): ILoan | undefined {
+  async findById(id: number): Promise<ILoan | undefined> {
     const stmt = db.prepare("SELECT * FROM loans WHERE id = ?");
     const row = stmt.get(id) as
       | {
@@ -72,7 +72,7 @@ export class DatabaseLoanAdapter implements LoanAdapter {
     };
   }
 
-  findByFriendId(friendId: number): ILoan[] {
+  async findByFriendId(friendId: number): Promise<ILoan[]> {
     const stmt = db.prepare("SELECT * FROM loans WHERE friend_id = ?");
     const rows = stmt.all(friendId) as Array<{
       id: number;
@@ -91,7 +91,7 @@ export class DatabaseLoanAdapter implements LoanAdapter {
     }));
   }
 
-  findByBookId(bookId: number): ILoan[] {
+  async findByBookId(bookId: number): Promise<ILoan[]> {
     const stmt = db.prepare("SELECT * FROM loans WHERE book_id = ?");
     const rows = stmt.all(bookId) as Array<{
       id: number;
@@ -110,7 +110,7 @@ export class DatabaseLoanAdapter implements LoanAdapter {
     }));
   }
 
-  create(input: NewLoanInput): ILoan {
+  async create(input: NewLoanInput): Promise<ILoan> {
     const stmt = db.prepare(`
       INSERT INTO loans (friend_id, book_id, checked_out)
       VALUES (?, ?, ?)
@@ -127,8 +127,8 @@ export class DatabaseLoanAdapter implements LoanAdapter {
     };
   }
 
-  returnLoan(id: number): ILoan | undefined {
-    const loan = this.findById(id);
+  async returnLoan(id: number): Promise<ILoan | undefined> {
+    const loan = await this.findById(id);
 
     if (!loan) {
       return undefined;

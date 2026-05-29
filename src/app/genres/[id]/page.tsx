@@ -40,13 +40,13 @@ export default async function GenrePage({ params }: GenrePageProps) {
     notFound();
   }
 
-  const genre = findGenreById(genreId);
+  const genre = await findGenreById(genreId);
 
   if (!genre) {
     notFound();
   }
 
-  const genres = getGenres();
+  const genres = await getGenres();
   const parentOptions = flattenGenres(genres).filter(
     (option) => option.id !== genre.id,
   );

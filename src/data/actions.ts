@@ -32,7 +32,7 @@ export async function createBook(formData: FormData) {
     throw new Error("Title and ISBN are required");
   }
 
-  const book = addBookToLibrary({
+  const book = await addBookToLibrary({
     title,
     isbn,
     summary,
@@ -62,7 +62,7 @@ export async function createGenre(formData: FormData) {
     throw new Error("Name and description are required");
   }
 
-  const genre = addGenreToLibrary({
+  const genre = await addGenreToLibrary({
     name,
     cover_img: coverImg,
     description,
@@ -87,7 +87,7 @@ export async function updateGenre(formData: FormData) {
     throw new Error("Invalid genre payload");
   }
 
-  const genre = updateGenreInLibrary({
+  const genre = await updateGenreInLibrary({
     id,
     name,
     cover_img: coverImg,
@@ -109,7 +109,7 @@ export async function deleteGenre(formData: FormData) {
     throw new Error("Invalid genre id");
   }
 
-  const deleted = deleteGenreFromLibrary(id);
+  const deleted = await deleteGenreFromLibrary(id);
 
   if (!deleted) {
     throw new Error("Genre not found");
@@ -129,7 +129,7 @@ export async function updateBookGenres(formData: FormData) {
     throw new Error("Invalid book id");
   }
 
-  setBookGenres(bookId, genreIds);
+  await setBookGenres(bookId, genreIds);
 
   redirect(`/catalog/${bookId}`);
 }
@@ -151,7 +151,7 @@ export async function createFriend(formData: FormData) {
     return;
   }
 
-  const friend = addFriendToRolodex({
+  const friend = await addFriendToRolodex({
     name,
     phone,
     email,
@@ -168,7 +168,7 @@ export async function loanBook(formData: FormData) {
     throw new Error("Friend and Book are required");
   }
 
-  createLoan({
+  await createLoan({
     friendId,
     bookId,
   });
@@ -177,7 +177,7 @@ export async function loanBook(formData: FormData) {
 }
 
 export async function markLoanReturned(loanId: number) {
-  if (!returnLoan(loanId)) {
+  if (!(await returnLoan(loanId))) {
     throw new Error("Loan not found");
   }
 

@@ -7,7 +7,7 @@ import { db } from "@/lib/database";
  * This adapter provides persistent storage for friends.
  */
 export class DatabaseRolodexAdapter implements RolodexAdapter {
-  getAll(): IFriend[] {
+  async getAll(): Promise<IFriend[]> {
     const stmt = db.prepare("SELECT * FROM friends ORDER BY id DESC");
     const rows = stmt.all() as Array<{
       id: number;
@@ -19,7 +19,7 @@ export class DatabaseRolodexAdapter implements RolodexAdapter {
     return rows;
   }
 
-  findById(id: number): IFriend | undefined {
+  async findById(id: number): Promise<IFriend | undefined> {
     const stmt = db.prepare("SELECT * FROM friends WHERE id = ?");
     const row = stmt.get(id) as
       | {
@@ -33,7 +33,7 @@ export class DatabaseRolodexAdapter implements RolodexAdapter {
     return row;
   }
 
-  add(input: NewFriendInput): IFriend {
+  async add(input: NewFriendInput): Promise<IFriend> {
     const stmt = db.prepare(`
       INSERT INTO friends (name, phone, email)
       VALUES (?, ?, ?)

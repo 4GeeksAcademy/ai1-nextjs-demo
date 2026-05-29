@@ -27,23 +27,33 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ### Environment Variables
 
-This project reads the Groq API key from an environment variable:
+This project supports both SQLite (default) and Postgres (Neon/Vercel).
 
-- `GROQ_API_KEY`
+- `DATA_PROVIDER` (`sqlite` or `postgres`)
+- `POSTGRES_URL` (preferred for Neon/Vercel Postgres)
+- `DATABASE_URL` (fallback Postgres connection string)
 
-Create a local `.env` file from `.env.example` and set your key:
-
-```bash
-cp .env.example .env
-```
-
-Then update `GROQ_API_KEY` in `.env` with your own value.
+If `DATA_PROVIDER=postgres`, or if `POSTGRES_URL`/`DATABASE_URL` is set while
+`DATA_PROVIDER` is not `sqlite`, the app uses Postgres adapters.
 
 ### Database
 
-The application uses SQLite for persistent data storage. On first run, a `library.db` file will be automatically created and seeded with sample data.
+#### SQLite (default local mode)
 
-To reset the database, simply delete `library.db` and restart the server.
+The application uses SQLite by default for local persistent data storage.
+On first run, a `library.db` file will be automatically created and seeded with
+sample data.
+
+To reset the SQLite database, delete `library.db` and restart the server.
+
+#### Neon Postgres (recommended for Vercel)
+
+Set these environment variables in Vercel:
+
+- `DATA_PROVIDER=postgres`
+- `POSTGRES_URL=<your_neon_connection_string>`
+
+The Postgres schema is initialized automatically on first access.
 
 ## Architecture
 

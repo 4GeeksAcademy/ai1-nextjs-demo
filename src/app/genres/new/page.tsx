@@ -26,8 +26,8 @@ function flattenGenres(genres: IGenre[], prefix = ""): FlatGenreOption[] {
   });
 }
 
-export default function NewGenrePage() {
-  const genres = getGenres();
+export default async function NewGenrePage() {
+  const genres = await getGenres();
   const parentOptions = flattenGenres(genres);
 
   return (

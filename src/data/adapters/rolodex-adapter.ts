@@ -14,15 +14,15 @@ export interface RolodexAdapter {
   /**
    * Get all friends in the rolodex
    */
-  getAll(): IFriend[];
+  getAll(): Promise<IFriend[]>;
 
   /**
    * Find a friend by their ID
    */
-  findById(id: number): IFriend | undefined;
+  findById(id: number): Promise<IFriend | undefined>;
 
   /**
    * Add a new friend to the rolodex
    */
-  add(input: NewFriendInput): IFriend;
+  add(input: NewFriendInput): Promise<IFriend>;
 }

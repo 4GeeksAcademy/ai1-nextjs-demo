@@ -9,9 +9,9 @@ type LoanListItemProps = {
   loan: ILoan;
 };
 
-export default function LoanListItem({ loan }: LoanListItemProps) {
-  const book = findBookById(loan.bookId);
-  const friend = findFriendById(loan.friendId);
+export default async function LoanListItem({ loan }: LoanListItemProps) {
+  const book = await findBookById(loan.bookId);
+  const friend = await findFriendById(loan.friendId);
 
   if (!book || !friend) return null;
 

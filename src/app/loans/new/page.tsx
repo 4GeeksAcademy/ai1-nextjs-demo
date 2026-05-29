@@ -4,9 +4,9 @@ import { getLibrary } from "@/data/library";
 import { getRolodex } from "@/data/rolodex";
 import { loanBook } from "@/data/actions";
 
-export default function NewLoanPage() {
-  const books = getLibrary();
-  const friends = getRolodex();
+export default async function NewLoanPage() {
+  const books = await getLibrary();
+  const friends = await getRolodex();
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 px-6 py-10 sm:px-10 sm:py-12">

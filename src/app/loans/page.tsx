@@ -3,8 +3,8 @@ import Link from "next/link";
 import { getActiveLoans } from "@/data/loans";
 import { LoanListItem } from "@/components";
 
-export default function LoansPage() {
-  const loans = getActiveLoans();
+export default async function LoansPage() {
+  const loans = await getActiveLoans();
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 px-6 py-10 sm:px-10 sm:py-12">

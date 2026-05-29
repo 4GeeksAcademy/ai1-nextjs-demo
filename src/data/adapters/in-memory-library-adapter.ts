@@ -307,23 +307,25 @@ export class InMemoryLibraryAdapter implements LibraryAdapter {
     };
   }
 
-  private withAssignedGenres(book: IBook): IBook {
+  private async withAssignedGenres(book: IBook): Promise<IBook> {
     return {
       ...book,
-      genres: this.findGenresByBookId(book.id),
+      genres: await this.findGenresByBookId(book.id),
     };
   }
 
-  getAll(): IBook[] {
-    return this.storage.map((book) =>
-      this.withAssignedGenres({
-        ...book,
-        cover_img: normalizeCoverImage(book.cover_img),
-      }),
+  async getAll(): Promise<IBook[]> {
+    return Promise.all(
+      this.storage.map((book) =>
+        this.withAssignedGenres({
+          ...book,
+          cover_img: normalizeCoverImage(book.cover_img),
+        }),
+      ),
     );
   }
 
-  getAllGenres(): IGenre[] {
+  async getAllGenres(): Promise<IGenre[]> {
     const byParent = new Map<number | null, InMemoryGenreRow[]>();
 
     for (const genre of this.genres) {
@@ -350,7 +352,7 @@ export class InMemoryLibraryAdapter implements LibraryAdapter {
     return buildTree(null);
   }
 
-  findById(id: number): IBook | undefined {
+  async findById(id: number): Promise<IBook | undefined> {
     const book = this.storage.find((entry) => entry.id === id);
 
     if (!book) {
@@ -363,7 +365,7 @@ export class InMemoryLibraryAdapter implements LibraryAdapter {
     });
   }
 
-  findGenresByBookId(bookId: number): IGenre[] {
+  async findGenresByBookId(bookId: number): Promise<IGenre[]> {
     const genreIds = new Set(
       this.bookGenres
         .filter((entry) => entry.book_id === bookId)
@@ -375,7 +377,7 @@ export class InMemoryLibraryAdapter implements LibraryAdapter {
       .map((genre) => this.toGenre(genre));
   }
 
-  add(input: NewBookInput): IBook {
+  async add(input: NewBookInput): Promise<IBook> {
     const currentMaxId = this.storage.reduce(
       (maxId, book) => Math.max(maxId, book.id),
       0,
@@ -393,13 +395,16 @@ export class InMemoryLibraryAdapter implements LibraryAdapter {
 
     this.storage.unshift(book);
     if (input.genreIds && input.genreIds.length > 0) {
-      this.setGenresForBook(book.id, input.genreIds);
+      await this.setGenresForBook(book.id, input.genreIds);
     }
 
     return this.withAssignedGenres(book);
   }
 
-  setGenresForBook(bookId: number, genreIds: number[]): IGenre[] {
+  async setGenresForBook(
+    bookId: number,
+    genreIds: number[],
+  ): Promise<IGenre[]> {
     const hasBook = this.storage.some((book) => book.id === bookId);
 
     if (!hasBook) {
@@ -422,7 +427,7 @@ export class InMemoryLibraryAdapter implements LibraryAdapter {
     return this.findGenresByBookId(bookId);
   }
 
-  findGenreById(id: number): IGenre | undefined {
+  async findGenreById(id: number): Promise<IGenre | undefined> {
     const genre = this.genres.find((entry) => entry.id === id);
 
     if (!genre) {
@@ -432,12 +437,12 @@ export class InMemoryLibraryAdapter implements LibraryAdapter {
     return this.toGenre(genre);
   }
 
-  addGenre(input: {
+  async addGenre(input: {
     name: string;
     cover_img: string;
     description: string;
     parent_genre_id?: number;
-  }): IGenre {
+  }): Promise<IGenre> {
     const currentMaxId = this.genres.reduce(
       (maxId, genre) => Math.max(maxId, genre.id),
       0,
@@ -462,13 +467,13 @@ export class InMemoryLibraryAdapter implements LibraryAdapter {
     return this.toGenre(genre);
   }
 
-  updateGenre(input: {
+  async updateGenre(input: {
     id: number;
     name: string;
     cover_img: string;
     description: string;
     parent_genre_id?: number;
-  }): IGenre | undefined {
+  }): Promise<IGenre | undefined> {
     const idx = this.genres.findIndex((entry) => entry.id === input.id);
 
     if (idx === -1) {
@@ -493,7 +498,7 @@ export class InMemoryLibraryAdapter implements LibraryAdapter {
     return this.toGenre(this.genres[idx]);
   }
 
-  deleteGenre(id: number): boolean {
+  async deleteGenre(id: number): Promise<boolean> {
     const existingIndex = this.genres.findIndex((genre) => genre.id === id);
 
     if (existingIndex === -1) {

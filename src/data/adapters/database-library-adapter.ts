@@ -55,7 +55,7 @@ export class DatabaseLibraryAdapter implements LibraryAdapter {
     };
   }
 
-  getAll(): IBook[] {
+  async getAll(): Promise<IBook[]> {
     const stmt = db.prepare("SELECT * FROM books ORDER BY id DESC");
     const rows = stmt.all() as Array<{
       id: number;
@@ -67,19 +67,21 @@ export class DatabaseLibraryAdapter implements LibraryAdapter {
       added: string;
     }>;
 
-    return rows.map((row) => ({
-      id: row.id,
-      title: row.title,
-      isbn: row.isbn,
-      cover_img: normalizeCoverImage(row.cover_img),
-      open_library_id: row.open_library_id || undefined,
-      summary: row.summary,
-      added: new Date(row.added),
-      genres: this.findGenresByBookId(row.id),
-    }));
+    return Promise.all(
+      rows.map(async (row) => ({
+        id: row.id,
+        title: row.title,
+        isbn: row.isbn,
+        cover_img: normalizeCoverImage(row.cover_img),
+        open_library_id: row.open_library_id || undefined,
+        summary: row.summary,
+        added: new Date(row.added),
+        genres: await this.findGenresByBookId(row.id),
+      })),
+    );
   }
 
-  getAllGenres(): IGenre[] {
+  async getAllGenres(): Promise<IGenre[]> {
     const stmt = db.prepare(`
       SELECT id, name, cover_img, description, parent_genre_id
       FROM genres
@@ -119,7 +121,7 @@ export class DatabaseLibraryAdapter implements LibraryAdapter {
     return buildTree(null);
   }
 
-  findById(id: number): IBook | undefined {
+  async findById(id: number): Promise<IBook | undefined> {
     const stmt = db.prepare("SELECT * FROM books WHERE id = ?");
     const row = stmt.get(id) as
       | {
@@ -145,11 +147,11 @@ export class DatabaseLibraryAdapter implements LibraryAdapter {
       open_library_id: row.open_library_id || undefined,
       summary: row.summary,
       added: new Date(row.added),
-      genres: this.findGenresByBookId(row.id),
+      genres: await this.findGenresByBookId(row.id),
     };
   }
 
-  findGenresByBookId(bookId: number): IGenre[] {
+  async findGenresByBookId(bookId: number): Promise<IGenre[]> {
     const stmt = db.prepare(`
       SELECT g.id, g.name, g.cover_img, g.description, g.parent_genre_id
       FROM genres g
@@ -168,7 +170,10 @@ export class DatabaseLibraryAdapter implements LibraryAdapter {
     return rows.map((row) => this.toGenre(row));
   }
 
-  setGenresForBook(bookId: number, genreIds: number[]): IGenre[] {
+  async setGenresForBook(
+    bookId: number,
+    genreIds: number[],
+  ): Promise<IGenre[]> {
     const bookExists = db
       .prepare("SELECT 1 FROM books WHERE id = ?")
       .get(bookId) as { 1: number } | undefined;
@@ -201,7 +206,7 @@ export class DatabaseLibraryAdapter implements LibraryAdapter {
     return this.findGenresByBookId(bookId);
   }
 
-  findGenreById(id: number): IGenre | undefined {
+  async findGenreById(id: number): Promise<IGenre | undefined> {
     const stmt = db.prepare(`
       SELECT id, name, cover_img, description, parent_genre_id
       FROM genres
@@ -224,12 +229,12 @@ export class DatabaseLibraryAdapter implements LibraryAdapter {
     return this.toGenre(row);
   }
 
-  addGenre(input: {
+  async addGenre(input: {
     name: string;
     cover_img: string;
     description: string;
     parent_genre_id?: number;
-  }): IGenre {
+  }): Promise<IGenre> {
     const stmt = db.prepare(`
       INSERT INTO genres (name, cover_img, description, parent_genre_id)
       VALUES (?, ?, ?, ?)
@@ -256,14 +261,14 @@ export class DatabaseLibraryAdapter implements LibraryAdapter {
     };
   }
 
-  updateGenre(input: {
+  async updateGenre(input: {
     id: number;
     name: string;
     cover_img: string;
     description: string;
     parent_genre_id?: number;
-  }): IGenre | undefined {
-    const existing = this.findGenreById(input.id);
+  }): Promise<IGenre | undefined> {
+    const existing = await this.findGenreById(input.id);
 
     if (!existing) {
       return undefined;
@@ -291,14 +296,14 @@ export class DatabaseLibraryAdapter implements LibraryAdapter {
     return this.findGenreById(input.id);
   }
 
-  deleteGenre(id: number): boolean {
+  async deleteGenre(id: number): Promise<boolean> {
     const stmt = db.prepare("DELETE FROM genres WHERE id = ?");
     const result = stmt.run(id);
 
     return result.changes > 0;
   }
 
-  add(input: NewBookInput): IBook {
+  async add(input: NewBookInput): Promise<IBook> {
     const stmt = db.prepare(`
       INSERT INTO books (title, isbn, cover_img, open_library_id, summary, added)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -319,7 +324,6 @@ export class DatabaseLibraryAdapter implements LibraryAdapter {
       );
 
       const bookId = Number(result.lastInsertRowid);
-      const genres = this.setGenresForBook(bookId, input.genreIds ?? []);
 
       return {
         id: bookId,
@@ -329,10 +333,18 @@ export class DatabaseLibraryAdapter implements LibraryAdapter {
         open_library_id: normalizedOpenLibraryId || undefined,
         summary: input.summary.trim(),
         added: new Date(added),
-        genres,
       };
     });
 
-    return createInTransaction();
+    const createdBook = createInTransaction();
+    const genres = await this.setGenresForBook(
+      createdBook.id,
+      input.genreIds ?? [],
+    );
+
+    return {
+      ...createdBook,
+      genres,
+    };
   }
 }

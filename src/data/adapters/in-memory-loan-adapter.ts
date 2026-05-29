@@ -34,27 +34,27 @@ export class InMemoryLoanAdapter implements LoanAdapter {
     this.storage = [...initialData];
   }
 
-  getAll(): ILoan[] {
+  async getAll(): Promise<ILoan[]> {
     return this.storage;
   }
 
-  getActive(): ILoan[] {
+  async getActive(): Promise<ILoan[]> {
     return this.storage.filter((loan) => !loan.returnedAt);
   }
 
-  findById(id: number): ILoan | undefined {
+  async findById(id: number): Promise<ILoan | undefined> {
     return this.storage.find((loan) => loan.id === id);
   }
 
-  findByFriendId(friendId: number): ILoan[] {
+  async findByFriendId(friendId: number): Promise<ILoan[]> {
     return this.storage.filter((loan) => loan.friendId === friendId);
   }
 
-  findByBookId(bookId: number): ILoan[] {
+  async findByBookId(bookId: number): Promise<ILoan[]> {
     return this.storage.filter((loan) => loan.bookId === bookId);
   }
 
-  create(input: NewLoanInput): ILoan {
+  async create(input: NewLoanInput): Promise<ILoan> {
     const currentMaxId = this.storage.reduce(
       (maxId, loan) => Math.max(maxId, loan.id),
       0,
@@ -71,7 +71,7 @@ export class InMemoryLoanAdapter implements LoanAdapter {
     return loan;
   }
 
-  returnLoan(id: number): ILoan | undefined {
+  async returnLoan(id: number): Promise<ILoan | undefined> {
     const loan = this.storage.find((loan) => loan.id === id);
 
     if (!loan) {

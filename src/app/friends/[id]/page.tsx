@@ -15,7 +15,7 @@ export default async function FriendPage({ params }: FriendPageProps) {
     notFound();
   }
 
-  const friend = findFriendById(friendId);
+  const friend = await findFriendById(friendId);
 
   if (!friend) {
     notFound();

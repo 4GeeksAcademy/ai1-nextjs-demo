@@ -13,35 +13,35 @@ export interface LoanAdapter {
   /**
    * Get all loans
    */
-  getAll(): ILoan[];
+  getAll(): Promise<ILoan[]>;
 
   /**
    * Get all active loans (not returned yet)
    */
-  getActive(): ILoan[];
+  getActive(): Promise<ILoan[]>;
 
   /**
    * Find a loan by its ID
    */
-  findById(id: number): ILoan | undefined;
+  findById(id: number): Promise<ILoan | undefined>;
 
   /**
    * Find loans by friend ID
    */
-  findByFriendId(friendId: number): ILoan[];
+  findByFriendId(friendId: number): Promise<ILoan[]>;
 
   /**
    * Find loans by book ID
    */
-  findByBookId(bookId: number): ILoan[];
+  findByBookId(bookId: number): Promise<ILoan[]>;
 
   /**
    * Create a new loan
    */
-  create(input: NewLoanInput): ILoan;
+  create(input: NewLoanInput): Promise<ILoan>;
 
   /**
    * Mark a loan as returned
    */
-  returnLoan(id: number): ILoan | undefined;
+  returnLoan(id: number): Promise<ILoan | undefined>;
 }

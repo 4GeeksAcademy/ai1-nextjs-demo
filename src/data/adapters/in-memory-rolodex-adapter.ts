@@ -63,15 +63,15 @@ export class InMemoryRolodexAdapter implements RolodexAdapter {
     this.storage = [...initialData];
   }
 
-  getAll(): IFriend[] {
+  async getAll(): Promise<IFriend[]> {
     return this.storage;
   }
 
-  findById(id: number): IFriend | undefined {
+  async findById(id: number): Promise<IFriend | undefined> {
     return this.storage.find((entry) => entry.id === id);
   }
 
-  add(input: NewFriendInput): IFriend {
+  async add(input: NewFriendInput): Promise<IFriend> {
     const currentMaxId = this.storage.reduce(
       (maxId, friend) => Math.max(maxId, friend.id),
       0,

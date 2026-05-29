@@ -47,8 +47,8 @@ function GenreTree({ genres }: { genres: IGenre[] }) {
   );
 }
 
-export default function GenresPage() {
-  const genres = getGenres();
+export default async function GenresPage() {
+  const genres = await getGenres();
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 px-6 py-10 sm:px-10 sm:py-12">

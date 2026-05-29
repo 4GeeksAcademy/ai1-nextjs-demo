@@ -32,50 +32,50 @@ export interface LibraryAdapter {
   /**
    * Get all books in the library
    */
-  getAll(): IBook[];
+  getAll(): Promise<IBook[]>;
 
   /**
    * Get all genres as a hierarchical tree.
    */
-  getAllGenres(): IGenre[];
+  getAllGenres(): Promise<IGenre[]>;
 
   /**
    * Find a book by its ID
    */
-  findById(id: number): IBook | undefined;
+  findById(id: number): Promise<IBook | undefined>;
 
   /**
    * Find all genres assigned to a specific book.
    */
-  findGenresByBookId(bookId: number): IGenre[];
+  findGenresByBookId(bookId: number): Promise<IGenre[]>;
 
   /**
    * Find a genre by its ID.
    */
-  findGenreById(id: number): IGenre | undefined;
+  findGenreById(id: number): Promise<IGenre | undefined>;
 
   /**
    * Add a new book to the library
    */
-  add(input: NewBookInput): IBook;
+  add(input: NewBookInput): Promise<IBook>;
 
   /**
    * Replace all assigned genres for a specific book.
    */
-  setGenresForBook(bookId: number, genreIds: number[]): IGenre[];
+  setGenresForBook(bookId: number, genreIds: number[]): Promise<IGenre[]>;
 
   /**
    * Create a new genre.
    */
-  addGenre(input: NewGenreInput): IGenre;
+  addGenre(input: NewGenreInput): Promise<IGenre>;
 
   /**
    * Update an existing genre.
    */
-  updateGenre(input: UpdateGenreInput): IGenre | undefined;
+  updateGenre(input: UpdateGenreInput): Promise<IGenre | undefined>;
 
   /**
    * Delete a genre by ID.
    */
-  deleteGenre(id: number): boolean;
+  deleteGenre(id: number): Promise<boolean>;
 }
