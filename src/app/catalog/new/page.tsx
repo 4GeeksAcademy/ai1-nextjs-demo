@@ -1,15 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { BookPreview } from "@/components/book";
 import {
   createBook,
+  getLibraryGenres,
   getOpenLibraryBookData,
   searchOpenLibraryCatalog,
 } from "@/data/actions";
 import type { OpenLibraryBookSearchResult } from "@/data/open-library";
+import type { IGenre } from "@/types";
+
+type FlatGenreOption = {
+  id: number;
+  name: string;
+  level: number;
+};
+
+function flattenGenres(genres: IGenre[], level = 0): FlatGenreOption[] {
+  return genres.flatMap((genre) => {
+    const current: FlatGenreOption = {
+      id: genre.id,
+      name: genre.name,
+      level,
+    };
+
+    const children = genre.subgenres
+      ? flattenGenres(genre.subgenres, level + 1)
+      : [];
+
+    return [current, ...children];
+  });
+}
 
 export default function NewBookPage() {
   const [title, setTitle] = useState("");
@@ -23,9 +47,28 @@ export default function NewBookPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchError, setSearchError] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [genres, setGenres] = useState<IGenre[]>([]);
+  const [genreLoadError, setGenreLoadError] = useState("");
   const [searchResults, setSearchResults] = useState<
     OpenLibraryBookSearchResult[]
   >([]);
+
+  useEffect(() => {
+    const loadGenres = async () => {
+      try {
+        const genreTree = await getLibraryGenres();
+        setGenres(genreTree);
+      } catch {
+        setGenreLoadError(
+          "Could not load genres. You can still save the book.",
+        );
+      }
+    };
+
+    loadGenres();
+  }, []);
+
+  const genreOptions = useMemo(() => flattenGenres(genres), [genres]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -203,11 +246,7 @@ export default function NewBookPage() {
           </section>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <input
-              type="hidden"
-              name="open_library_id"
-              value={openLibraryId}
-            />
+            <input type="hidden" name="open_library_id" value={openLibraryId} />
 
             <div className="space-y-2">
               <label
@@ -301,6 +340,38 @@ export default function NewBookPage() {
                 className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 outline-none transition focus:border-cyan-500"
                 placeholder="A concise overview of the book (optional)."
               />
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-slate-200">Genres</p>
+
+              {genreLoadError ? (
+                <p className="text-xs text-rose-300">{genreLoadError}</p>
+              ) : null}
+
+              {genreOptions.length ? (
+                <div className="grid max-h-48 gap-2 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800/60 p-3">
+                  {genreOptions.map((genre) => (
+                    <label
+                      key={genre.id}
+                      className="flex items-center gap-2 text-sm text-slate-200"
+                      style={{ paddingLeft: `${genre.level * 14}px` }}
+                    >
+                      <input
+                        type="checkbox"
+                        name="genre_ids"
+                        value={genre.id}
+                        className="h-4 w-4 rounded border-slate-500 bg-slate-900 text-cyan-400 focus:ring-cyan-500"
+                      />
+                      <span>{genre.name}</span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400">
+                  No genres available yet.
+                </p>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-3 pt-2">

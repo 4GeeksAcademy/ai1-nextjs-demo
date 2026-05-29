@@ -1,4 +1,4 @@
-import type { IBook } from "@/types";
+import type { IBook, IGenre } from "@/types";
 import type { LibraryAdapter, NewBookInput } from "./library-adapter";
 import { db } from "@/lib/database";
 
@@ -39,6 +39,22 @@ function normalizeCoverImage(cover_img: string) {
  * This adapter provides persistent storage for books.
  */
 export class DatabaseLibraryAdapter implements LibraryAdapter {
+  private toGenre(row: {
+    id: number;
+    name: string;
+    cover_img: string;
+    description: string;
+    parent_genre_id?: number | null;
+  }): IGenre {
+    return {
+      id: row.id,
+      name: row.name,
+      cover_img: normalizeCoverImage(row.cover_img),
+      description: row.description,
+      parent_genre_id: row.parent_genre_id ?? undefined,
+    };
+  }
+
   getAll(): IBook[] {
     const stmt = db.prepare("SELECT * FROM books ORDER BY id DESC");
     const rows = stmt.all() as Array<{
@@ -59,7 +75,48 @@ export class DatabaseLibraryAdapter implements LibraryAdapter {
       open_library_id: row.open_library_id || undefined,
       summary: row.summary,
       added: new Date(row.added),
+      genres: this.findGenresByBookId(row.id),
     }));
+  }
+
+  getAllGenres(): IGenre[] {
+    const stmt = db.prepare(`
+      SELECT id, name, cover_img, description, parent_genre_id
+      FROM genres
+      ORDER BY id ASC
+    `);
+    const rows = stmt.all() as Array<{
+      id: number;
+      name: string;
+      cover_img: string;
+      description: string;
+      parent_genre_id: number | null;
+    }>;
+
+    const byParent = new Map<number | null, typeof rows>();
+
+    for (const row of rows) {
+      const list = byParent.get(row.parent_genre_id) ?? [];
+      list.push(row);
+      byParent.set(row.parent_genre_id, list);
+    }
+
+    const buildTree = (parentId: number | null): IGenre[] => {
+      const children = byParent.get(parentId) ?? [];
+
+      return children.map((child) => {
+        const subgenres = buildTree(child.id);
+        const genre = this.toGenre(child);
+
+        if (subgenres.length > 0) {
+          genre.subgenres = subgenres;
+        }
+
+        return genre;
+      });
+    };
+
+    return buildTree(null);
   }
 
   findById(id: number): IBook | undefined {
@@ -88,7 +145,157 @@ export class DatabaseLibraryAdapter implements LibraryAdapter {
       open_library_id: row.open_library_id || undefined,
       summary: row.summary,
       added: new Date(row.added),
+      genres: this.findGenresByBookId(row.id),
     };
+  }
+
+  findGenresByBookId(bookId: number): IGenre[] {
+    const stmt = db.prepare(`
+      SELECT g.id, g.name, g.cover_img, g.description, g.parent_genre_id
+      FROM genres g
+      INNER JOIN book_genres bg ON bg.genre_id = g.id
+      WHERE bg.book_id = ?
+      ORDER BY g.id ASC
+    `);
+    const rows = stmt.all(bookId) as Array<{
+      id: number;
+      name: string;
+      cover_img: string;
+      description: string;
+      parent_genre_id: number | null;
+    }>;
+
+    return rows.map((row) => this.toGenre(row));
+  }
+
+  setGenresForBook(bookId: number, genreIds: number[]): IGenre[] {
+    const bookExists = db
+      .prepare("SELECT 1 FROM books WHERE id = ?")
+      .get(bookId) as { 1: number } | undefined;
+
+    if (!bookExists) {
+      return [];
+    }
+
+    const normalizedGenreIds = [...new Set(genreIds)].filter((genreId) =>
+      Number.isInteger(genreId),
+    );
+
+    const deleteStmt = db.prepare("DELETE FROM book_genres WHERE book_id = ?");
+    const insertStmt = db.prepare(`
+      INSERT INTO book_genres (book_id, genre_id)
+      SELECT ?, ?
+      WHERE EXISTS (SELECT 1 FROM genres WHERE id = ?)
+    `);
+
+    const replaceInTransaction = db.transaction(() => {
+      deleteStmt.run(bookId);
+
+      for (const genreId of normalizedGenreIds) {
+        insertStmt.run(bookId, genreId, genreId);
+      }
+    });
+
+    replaceInTransaction();
+
+    return this.findGenresByBookId(bookId);
+  }
+
+  findGenreById(id: number): IGenre | undefined {
+    const stmt = db.prepare(`
+      SELECT id, name, cover_img, description, parent_genre_id
+      FROM genres
+      WHERE id = ?
+    `);
+    const row = stmt.get(id) as
+      | {
+          id: number;
+          name: string;
+          cover_img: string;
+          description: string;
+          parent_genre_id: number | null;
+        }
+      | undefined;
+
+    if (!row) {
+      return undefined;
+    }
+
+    return this.toGenre(row);
+  }
+
+  addGenre(input: {
+    name: string;
+    cover_img: string;
+    description: string;
+    parent_genre_id?: number;
+  }): IGenre {
+    const stmt = db.prepare(`
+      INSERT INTO genres (name, cover_img, description, parent_genre_id)
+      VALUES (?, ?, ?, ?)
+    `);
+
+    const normalizedName = input.name.trim();
+    const normalizedDescription = input.description.trim();
+    const normalizedCoverImg = normalizeCoverImage(input.cover_img);
+    const normalizedParentGenreId = input.parent_genre_id ?? null;
+
+    const result = stmt.run(
+      normalizedName,
+      normalizedCoverImg,
+      normalizedDescription,
+      normalizedParentGenreId,
+    );
+
+    return {
+      id: Number(result.lastInsertRowid),
+      name: normalizedName,
+      cover_img: normalizedCoverImg,
+      description: normalizedDescription,
+      parent_genre_id: input.parent_genre_id,
+    };
+  }
+
+  updateGenre(input: {
+    id: number;
+    name: string;
+    cover_img: string;
+    description: string;
+    parent_genre_id?: number;
+  }): IGenre | undefined {
+    const existing = this.findGenreById(input.id);
+
+    if (!existing) {
+      return undefined;
+    }
+
+    const normalizedParentGenreId =
+      input.parent_genre_id && input.parent_genre_id !== input.id
+        ? input.parent_genre_id
+        : null;
+
+    const stmt = db.prepare(`
+      UPDATE genres
+      SET name = ?, cover_img = ?, description = ?, parent_genre_id = ?
+      WHERE id = ?
+    `);
+
+    stmt.run(
+      input.name.trim(),
+      normalizeCoverImage(input.cover_img),
+      input.description.trim(),
+      normalizedParentGenreId,
+      input.id,
+    );
+
+    return this.findGenreById(input.id);
+  }
+
+  deleteGenre(id: number): boolean {
+    const stmt = db.prepare("DELETE FROM genres WHERE id = ?");
+    const result = stmt.run(id);
+
+    return result.changes > 0;
   }
 
   add(input: NewBookInput): IBook {
@@ -101,23 +308,31 @@ export class DatabaseLibraryAdapter implements LibraryAdapter {
     const normalizedOpenLibraryId = input.open_library_id?.trim() || null;
     const added = new Date().toISOString();
 
-    const result = stmt.run(
-      input.title.trim(),
-      input.isbn.trim(),
-      normalizedCoverImg,
-      normalizedOpenLibraryId,
-      input.summary.trim(),
-      added,
-    );
+    const createInTransaction = db.transaction(() => {
+      const result = stmt.run(
+        input.title.trim(),
+        input.isbn.trim(),
+        normalizedCoverImg,
+        normalizedOpenLibraryId,
+        input.summary.trim(),
+        added,
+      );
 
-    return {
-      id: Number(result.lastInsertRowid),
-      title: input.title.trim(),
-      isbn: input.isbn.trim(),
-      cover_img: normalizedCoverImg,
-      open_library_id: normalizedOpenLibraryId || undefined,
-      summary: input.summary.trim(),
-      added: new Date(added),
-    };
+      const bookId = Number(result.lastInsertRowid);
+      const genres = this.setGenresForBook(bookId, input.genreIds ?? []);
+
+      return {
+        id: bookId,
+        title: input.title.trim(),
+        isbn: input.isbn.trim(),
+        cover_img: normalizedCoverImg,
+        open_library_id: normalizedOpenLibraryId || undefined,
+        summary: input.summary.trim(),
+        added: new Date(added),
+        genres,
+      };
+    });
+
+    return createInTransaction();
   }
 }

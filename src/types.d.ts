@@ -3,6 +3,8 @@ interface IGenre {
   name: string;
   cover_img: string;
   description: string;
+  parent_genre_id?: number;
+  subgenres?: IGenre[];
 }
 
 interface IBook {
@@ -13,6 +15,7 @@ interface IBook {
   open_library_id?: string;
   summary: string;
   added: Date;
+  genres?: IGenre[];
 }
 
 interface IFriend {
@@ -34,4 +37,12 @@ type LibraryType = IBook[];
 type RolodexType = IFriend[];
 type LoanLedgerType = ILoan[];
 
-export { IBook, IFriend, ILoan, LibraryType, RolodexType, LoanLedgerType };
+export {
+  IGenre,
+  IBook,
+  IFriend,
+  ILoan,
+  LibraryType,
+  RolodexType,
+  LoanLedgerType,
+};

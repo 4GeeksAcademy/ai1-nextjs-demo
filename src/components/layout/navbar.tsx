@@ -25,6 +25,18 @@ export default function Navbar() {
             Add Book
           </Link>
           <Link
+            href="/genres"
+            className="rounded-lg px-3 py-2 text-sm font-medium text-slate-200 transition hover:bg-slate-800 hover:text-cyan-300"
+          >
+            Genres
+          </Link>
+          <Link
+            href="/genres/new"
+            className="rounded-lg px-3 py-2 text-sm font-medium text-slate-200 transition hover:bg-slate-800 hover:text-cyan-300"
+          >
+            Add Genre
+          </Link>
+          <Link
             href="/friends"
             className="rounded-lg px-3 py-2 text-sm font-medium text-slate-200 transition hover:bg-slate-800 hover:text-cyan-300"
           >

@@ -5,6 +5,8 @@ const dbPath = path.join(process.cwd(), "library.db");
 const db = new Database(dbPath);
 
 type SeedBookRow = [number, string, string, string, string, string];
+type SeedGenreRow = [number, string, string, string, number | null];
+type SeedBookGenreRow = [number, number];
 type SeedFriendRow = [string, string, string];
 type SeedLoanRow = [number, number, string, string | null];
 
@@ -29,9 +31,9 @@ export function initializeDatabase() {
   `);
 
   // Migrate existing databases that predate open_library_id.
-  const bookColumns = db
-    .prepare("PRAGMA table_info(books)")
-    .all() as Array<{ name: string }>;
+  const bookColumns = db.prepare("PRAGMA table_info(books)").all() as Array<{
+    name: string;
+  }>;
   const hasOpenLibraryId = bookColumns.some(
     (column) => column.name === "open_library_id",
   );
@@ -62,6 +64,37 @@ export function initializeDatabase() {
       FOREIGN KEY (book_id) REFERENCES books(id)
     )
   `);
+
+  // Create genres table. parent_genre_id enables hierarchical genres/subgenres.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS genres (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      cover_img TEXT NOT NULL,
+      description TEXT NOT NULL,
+      parent_genre_id INTEGER,
+      FOREIGN KEY (parent_genre_id) REFERENCES genres(id) ON DELETE SET NULL,
+      UNIQUE (name, parent_genre_id)
+    )
+  `);
+
+  // Create join table to support many-to-many between books and genres.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS book_genres (
+      book_id INTEGER NOT NULL,
+      genre_id INTEGER NOT NULL,
+      PRIMARY KEY (book_id, genre_id),
+      FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+      FOREIGN KEY (genre_id) REFERENCES genres(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.exec(
+    "CREATE INDEX IF NOT EXISTS idx_book_genres_book_id ON book_genres(book_id)",
+  );
+  db.exec(
+    "CREATE INDEX IF NOT EXISTS idx_book_genres_genre_id ON book_genres(genre_id)",
+  );
 }
 
 /**
@@ -69,6 +102,16 @@ export function initializeDatabase() {
  */
 export function seedDatabase() {
   const bookCount = db.prepare("SELECT COUNT(*) as count FROM books").get() as {
+    count: number;
+  };
+  const genreCount = db
+    .prepare("SELECT COUNT(*) as count FROM genres")
+    .get() as {
+    count: number;
+  };
+  const bookGenreCount = db
+    .prepare("SELECT COUNT(*) as count FROM book_genres")
+    .get() as {
     count: number;
   };
 
@@ -259,6 +302,128 @@ export function seedDatabase() {
     });
 
     insertManyLoans(loans);
+  }
+
+  if (genreCount.count === 0) {
+    const insertGenre = db.prepare(`
+      INSERT INTO genres (id, name, cover_img, description, parent_genre_id)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+
+    const genres: SeedGenreRow[] = [
+      [
+        1,
+        "Fiction",
+        "https://placehold.co/640x960.png?text=Fiction",
+        "Narrative literature created primarily from imagination.",
+        null,
+      ],
+      [
+        2,
+        "Sci-Fi",
+        "https://placehold.co/640x960.png?text=Sci-Fi",
+        "Speculative fiction centered on science, technology, and future worlds.",
+        1,
+      ],
+      [
+        3,
+        "Cyberpunk",
+        "https://placehold.co/640x960.png?text=Cyberpunk",
+        "High-tech, low-life stories featuring corporate dystopias and networked worlds.",
+        2,
+      ],
+      [
+        4,
+        "Fantasy",
+        "https://placehold.co/640x960.png?text=Fantasy",
+        "Stories driven by magic, mythic settings, and supernatural elements.",
+        1,
+      ],
+      [
+        5,
+        "Magical Realism",
+        "https://placehold.co/640x960.png?text=Magical+Realism",
+        "Realistic worlds where magical events appear as natural parts of life.",
+        1,
+      ],
+      [
+        6,
+        "Humor",
+        "https://placehold.co/640x960.png?text=Humor",
+        "Stories that emphasize satire, absurdity, and comic voice.",
+        1,
+      ],
+      [
+        7,
+        "Comics",
+        "https://placehold.co/640x960.png?text=Comics",
+        "Graphic storytelling through sequential visual panels.",
+        1,
+      ],
+      [
+        8,
+        "Space Opera",
+        "https://placehold.co/640x960.png?text=Space+Opera",
+        "Large-scale interstellar adventure with political and military conflict.",
+        2,
+      ],
+      [
+        9,
+        "Anthology",
+        "https://placehold.co/640x960.png?text=Anthology",
+        "Collections of multiple works around a theme, author, or concept.",
+        1,
+      ],
+    ];
+
+    const insertManyGenres = db.transaction((genres: SeedGenreRow[]) => {
+      for (const genre of genres) {
+        insertGenre.run(...genre);
+      }
+    });
+
+    insertManyGenres(genres);
+  }
+
+  if (bookGenreCount.count === 0) {
+    const linkBookGenre = db.prepare(`
+      INSERT INTO book_genres (book_id, genre_id)
+      SELECT ?, ?
+      WHERE EXISTS (SELECT 1 FROM books WHERE id = ?)
+        AND EXISTS (SELECT 1 FROM genres WHERE id = ?)
+    `);
+
+    const bookGenres: SeedBookGenreRow[] = [
+      [2, 4],
+      [3, 5],
+      [4, 3],
+      [5, 2],
+      [5, 6],
+      [8, 4],
+      [13, 9],
+      [16, 8],
+      [17, 3],
+      [18, 4],
+      [19, 3],
+      [19, 7],
+      [21, 2],
+      [22, 6],
+      [28, 4],
+      [28, 6],
+      [29, 3],
+      [29, 7],
+      [34, 1],
+    ];
+
+    const insertManyBookGenres = db.transaction(
+      (bookGenres: SeedBookGenreRow[]) => {
+        for (const [bookId, genreId] of bookGenres) {
+          linkBookGenre.run(bookId, genreId, bookId, genreId);
+        }
+      },
+    );
+
+    insertManyBookGenres(bookGenres);
   }
 }
 
